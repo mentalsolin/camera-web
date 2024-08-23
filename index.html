@@ -134,6 +134,8 @@
             }
         };
 
+        let isFrontCamera = true;
+
         const startStream = (deviceId) => {
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
@@ -144,7 +146,10 @@
                     video.srcObject = stream;
                     video.play();
                     currentStream = stream;
-                    video.addEventListener("loadedmetadata", adjustCanvasSize);
+                    video.addEventListener("loadedmetadata", () => {
+                        adjustCanvasSize();
+                        isFrontCamera = deviceId === cameras.find(cam => cam.label.includes("front")).deviceId;
+                    });
                 })
                 .catch(error => console.error("Ошибка доступа к камере:", error));
         };
@@ -152,8 +157,14 @@
         const draw = () => {
             previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
             previewCtx.save();
-            previewCtx.scale(-1, 1);
-            previewCtx.drawImage(video, -previewCanvas.width, 0, previewCanvas.width, previewCanvas.height);
+
+            if (isFrontCamera) {
+                previewCtx.scale(-1, 1);
+                previewCtx.drawImage(video, -previewCanvas.width, 0, previewCanvas.width, previewCanvas.height);
+            } else {
+                previewCtx.drawImage(video, 0, 0, previewCanvas.width, previewCanvas.height);
+            }
+
             previewCtx.restore();
             previewCtx.globalAlpha = 0.5;
             cameraOverlayState === true ? previewCtx.drawImage(overlayImage, 0, 0, previewCanvas.width, previewCanvas.height) : false;
