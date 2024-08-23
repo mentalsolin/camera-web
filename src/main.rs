@@ -12,7 +12,7 @@ async fn index() -> HttpResponse {
 }
 
 async fn img() -> HttpResponse {
-    let img_path = Path::new("img.png");
+    let img_path = Path::new("overlay.png");
     match fs::read(img_path) {
         Ok(image_data) => HttpResponse::Ok().content_type("image/jpeg").body(image_data),
         Err(_) => HttpResponse::InternalServerError().body("Failed to read image"),
@@ -28,7 +28,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .route("/", web::get().to(index))
-            .route("/img.png", web::get().to(img))
+            .route("/overlay.png", web::get().to(img))
     })
     .bind_openssl("0.0.0.0:8081", acceptor)?
     .run()

@@ -21,6 +21,7 @@
     <button class="button shot" onclick="shot()">o</button>
     <button class="button swap" onclick="nextCamera()">→</button>
     <button id="changeDelayButton" class="button changeDelay" onclick="changeDelay()">0</button>
+    <button id="cameraOverlayButton" class="button" onclick="switchCameraOverlay()">OL</button>
 
     <script>
         const video = document.getElementById("videoElement");
@@ -30,11 +31,12 @@
         const snapshotCtx = snapshotCanvas.getContext("2d");
         const flash = document.getElementById("flash");
         const overlayImage = new Image();
-        overlayImage.src = "./img.png"; // Замените на нужное изображение
+        overlayImage.src = "./overlay.png"; // Замените на нужное изображение
         let cameras = [];
         let currentCameraIndex = 0;
         let currentStream = null;
         let delay = 0;
+        let cameraOverlayState = false;
 
         const saveSettings = () => {
             localStorage.setItem("cameraIndex", currentCameraIndex);
@@ -85,7 +87,7 @@
             previewCtx.drawImage(video, -previewCanvas.width, 0, previewCanvas.width, previewCanvas.height);
             previewCtx.restore();
             previewCtx.globalAlpha = 0.5;
-            previewCtx.drawImage(overlayImage, 0, 0, previewCanvas.width, previewCanvas.height);
+            cameraOverlayState === true ? previewCtx.drawImage(overlayImage, 0, 0, previewCanvas.width, previewCanvas.height) : false;
             previewCtx.globalAlpha = 1;
             requestAnimationFrame(draw);
         };
@@ -112,6 +114,10 @@
             const newDelay = (delayValues.indexOf(parseInt(delayButton.textContent)) + 1) % delayValues.length;
             delayButton.textContent = delayValues[newDelay];
             setDelay(delayValues[newDelay]);
+        };
+
+        const switchCameraOverlay = () => {
+            cameraOverlayState = !cameraOverlayState;
         };
 
         const setDelay = (seconds) => {
