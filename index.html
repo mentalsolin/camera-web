@@ -1,27 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="page">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Camera</title>
     <style>
-        body {
+        .page {
+            box-sizing: border-box;
+        }
+        .page__body {
             margin: 0;
+            width: 100vw;
+            background-color: #000;
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
         .button {
             font-size: 50px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+        }
+
+
+        .navbar {
+            position: fixed;
+            display: flex;
+            width: 100%;
+            align-items: center;
+            padding: 30px;
+        }
+        .navbar-top {
+            top: 0;
+            column-gap: 30px;
+        }
+
+        .navbar-top .button {
+            outline: solid 2px #fff;
+            background-color: #00000020;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        .navbar-bottom {
+            bottom: 80px;
+            justify-content: space-between;
+        }
+        .navbar-bottom .soon {
+            width: 60px;
+            height: 60px;
+            background-color: transparent;
+            border: none;
+        }
+
+        .navbar-bottom .shot {
+            width: 80px;
+            height: 80px;
+            background-color: #fff;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .navbar-bottom .swap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: transparent;
+            text-align: right;
+            width: 60px;
+            height: 60px;
         }
     </style>
 </head>
 <body class="page__body">
-    <video id="videoElement" autoplay playsinline style="display: none"></video>
-    <canvas id="previewCanvas"></canvas>
-    <canvas id="snapshotCanvas" style="display: none"></canvas>
+    <nav class="navbar navbar-top">
+        <button id="cameraOverlayButton active" class="button" onclick="switchCameraOverlay()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="#fff"><path d="M480-118 120-398l66-50 294 228 294-228 66 50-360 280Zm0-202L120-600l360-280 360 280-360 280Zm0-280Zm0 178 230-178-230-178-230 178 230 178Z"/></svg></button>
+        <button id="changeDelayButton" class="button changeDelay" onclick="changeDelay()"></button>
+    </nav>
+    <nav class="navbar navbar-bottom">
+        <button class="soon"></button>
+        <button id="shotButton" class="button shot" onclick="shot()"></button>
+        <button class="button swap" onclick="nextCamera()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="#fff"><path d="M480-80q-143 0-253-90T88-400h82q28 106 114 173t196 67q86 0 160-42.5T756-320H640v-80h240v240h-80v-80q-57 76-141 118T480-80Zm0-280q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM80-560v-240h80v80q57-76 141-118t179-42q143 0 253 90t139 230h-82q-28-106-114-173t-196-67q-86 0-160 42.5T204-640h116v80H80Z"/></svg></button>
+    </nav>
+    
     <div id="flash"></div>
-    <button class="button shot" onclick="shot()">o</button>
-    <button class="button swap" onclick="nextCamera()">→</button>
-    <button id="changeDelayButton" class="button changeDelay" onclick="changeDelay()">0</button>
-    <button id="cameraOverlayButton" class="button" onclick="switchCameraOverlay()">OL</button>
+    <video id="videoElement" autoplay playsinline style="display: none"></video>
+    <canvas id="previewCanvas" style="width: 100%;"></canvas>
+    <canvas id="snapshotCanvas" style="display: none"></canvas>
 
     <script>
         const video = document.getElementById("videoElement");
@@ -108,30 +177,31 @@
             }
         };
 
+        const icons = {
+            0: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 16H10V8H7V16ZM7 19C6.16667 19 5.45833 18.7083 4.875 18.125C4.29167 17.5417 4 16.8333 4 16V8C4 7.16667 4.29167 6.45833 4.875 5.875C5.45833 5.29167 6.16667 5 7 5H10C10.8333 5 11.5417 5.29167 12.125 5.875C12.7083 6.45833 13 7.16667 13 8V16C13 16.8333 12.7083 17.5417 12.125 18.125C11.5417 18.7083 10.8333 19 10 19H7ZM14 19V17H18V16H15.35C14.9667 16 14.6458 15.8708 14.3875 15.6125C14.1292 15.3542 14 15.0333 14 14.65V12.35C14 11.9667 14.1292 11.6458 14.3875 11.3875C14.6458 11.1292 14.9667 11 15.35 11H20V13H16V14H18.65C19.0333 14 19.3542 14.1292 19.6125 14.3875C19.8708 14.6458 20 14.9667 20 15.35V17.65C20 18.0333 19.8708 18.3542 19.6125 18.6125C19.3542 18.8708 19.0333 19 18.65 19H14Z" fill="white"/></svg>`,
+            3: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19V16H10V13.5H4V10.5H10V8H4V5H10C10.8333 5 11.5417 5.29167 12.125 5.875C12.7083 6.45833 13 7.16667 13 8V9.9C13 10.4833 12.7958 10.9792 12.3875 11.3875C11.9792 11.7958 11.4833 12 10.9 12C11.4833 12 11.9792 12.2042 12.3875 12.6125C12.7958 13.0208 13 13.5167 13 14.1V16C13 16.8333 12.7083 17.5417 12.125 18.125C11.5417 18.7083 10.8333 19 10 19H4ZM15 19V17H19V16H16.35C15.9667 16 15.6458 15.8708 15.3875 15.6125C15.1292 15.3542 15 15.0333 15 14.65V12.35C15 11.9667 15.1292 11.6458 15.3875 11.3875C15.6458 11.1292 15.9667 11 16.35 11H21V13H17V14H19.65C20.0333 14 20.3542 14.1292 20.6125 14.3875C20.8708 14.6458 21 14.9667 21 15.35V17.65C21 18.0333 20.8708 18.3542 20.6125 18.6125C20.3542 18.8708 20.0333 19 19.65 19H15Z" fill="white"/></svg>`,
+            10: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 16H13V8H10V16ZM10 19C9.16667 19 8.45833 18.7083 7.875 18.125C7.29167 17.5417 7 16.8333 7 16V8C7 7.16667 7.29167 6.45833 7.875 5.875C8.45833 5.29167 9.16667 5 10 5H13C13.8333 5 14.5417 5.29167 15.125 5.875C15.7083 6.45833 16 7.16667 16 8V16C16 16.8333 15.7083 17.5417 15.125 18.125C14.5417 18.7083 13.8333 19 13 19H10ZM3 19V8H1V5H6V19H3ZM17 19V17H21V16H18.35C17.9667 16 17.6458 15.8708 17.3875 15.6125C17.1292 15.3542 17 15.0333 17 14.65V12.35C17 11.9667 17.1292 11.6458 17.3875 11.3875C17.6458 11.1292 17.9667 11 18.35 11H23V13H19V14H21.65C22.0333 14 22.3542 14.1292 22.6125 14.3875C22.8708 14.6458 23 14.9667 23 15.35V17.65C23 18.0333 22.8708 18.3542 22.6125 18.6125C22.3542 18.8708 22.0333 19 21.65 19H17Z" fill="white"/></svg>`
+        };
+
         const initDelay = () => {
             const storedDelay = localStorage.getItem("delay");
             const delayButton = document.getElementById("changeDelayButton");
-            if (storedDelay !== null) {
-                const parsedDelay = parseInt(storedDelay, 10);
-                setDelay(parsedDelay);
-            } else {
-                setDelay(0);
-            }
-            delayButton.textContent = delay;
+            delay = storedDelay !== null ? parseInt(storedDelay, 10) : 0;
+            setDelay(delay);
         };
 
         const setDelay = (seconds) => {
             delay = seconds;
             const delayButton = document.getElementById("changeDelayButton");
-            delayButton.textContent = delay;
+            delayButton.innerHTML = icons[delay];
             saveSettings();
         };
 
         const changeDelay = () => {
             const delayButton = document.getElementById("changeDelayButton");
             const delayValues = [0, 3, 10];
-            const currentDelay = parseInt(delayButton.textContent);
-            const newDelay = delayValues[(delayValues.indexOf(currentDelay) + 1) % delayValues.length];
+            const currentDelay = delayValues.indexOf(delay);
+            const newDelay = delayValues[(currentDelay + 1) % delayValues.length];
             setDelay(newDelay);
         };
 
@@ -141,10 +211,37 @@
             cameraOverlayState = !cameraOverlayState;
         };
 
+        let isButtonDisabled = false;
+        let countdownInterval;
+        let timeoutId;
 
         const shot = () => {
+            if (isButtonDisabled) {
+                clearInterval(countdownInterval);
+                clearTimeout(timeoutId);
+                shotButton.innerHTML = '';
+
+                flash.classList.remove("active");
+                isButtonDisabled = false;
+                return;
+            }
+
+            isButtonDisabled = true;
+            delay === 0 ? false : shotButton.innerHTML = delay;
+
+            countdownInterval = setInterval(function() {
+                if (delay > 1) {
+                    delay--;
+                    shotButton.innerHTML = delay;
+                } else {
+                    clearInterval(countdownInterval);
+                    shotButton.innerHTML = '';
+                }
+            }, 1000);
+
             flash.classList.add("active");
-            setTimeout(() => {
+
+            timeoutId = setTimeout(() => {
                 snapshotCtx.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
                 snapshotCanvas.toBlob(blob => {
                     const link = document.createElement("a");
@@ -155,9 +252,10 @@
                     URL.revokeObjectURL(link.href);
                 }, "image/png");
                 flash.classList.remove("active");
+
+                isButtonDisabled = false;
             }, delay * 1000);
         };
-
         if (navigator.mediaDevices?.enumerateDevices) {
             navigator.mediaDevices.enumerateDevices()
                 .then(devices => {
