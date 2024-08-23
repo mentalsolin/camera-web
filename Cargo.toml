@@ -1,0 +1,8 @@
+[package]
+name = "camera"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+actix-web = { version = "4.0", features = ["openssl"] }
+openssl = "0.10"

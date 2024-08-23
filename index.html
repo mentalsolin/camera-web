@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Camera</title>
+    <style>
+        body {
+            margin: 0;
+        }
+        .button {
+            font-size: 50px;
+        }
+    </style>
+</head>
+<body class="page__body">
+    <video id="videoElement" autoplay playsinline style="display: none"></video>
+    <canvas id="previewCanvas"></canvas>
+    <canvas id="snapshotCanvas" style="display: none"></canvas>
+    <div id="flash"></div>
+    <button class="button shot" onclick="shot()">o</button>
+    <button class="button swap" onclick="nextCamera()">→</button>
+    <button id="changeDelayButton" class="button changeDelay" onclick="changeDelay()">0</button>
+
+    <script>
+        const video = document.getElementById("videoElement");
+        const previewCanvas = document.getElementById("previewCanvas");
+        const snapshotCanvas = document.getElementById("snapshotCanvas");
+        const previewCtx = previewCanvas.getContext("2d");
+        const snapshotCtx = snapshotCanvas.getContext("2d");
+        const flash = document.getElementById("flash");
+        const overlayImage = new Image();
+        overlayImage.src = "./img.png"; // Замените на нужное изображение
+        let cameras = [];
+        let currentCameraIndex = 0;
+        let currentStream = null;
+        let delay = 0;
+
+        const saveSettings = () => {
+            localStorage.setItem("cameraIndex", currentCameraIndex);
+            localStorage.setItem("delay", delay);
+        };
+
+        const loadSettings = () => {
+            const savedCameraIndex = localStorage.getItem("cameraIndex");
+            const savedDelay = localStorage.getItem("delay");
+            if (savedCameraIndex !== null) currentCameraIndex = parseInt(savedCameraIndex, 10);
+            if (savedDelay !== null) delay = parseInt(savedDelay, 10);
+            updateDelayDisplay();
+        };
+
+        const updateDelayDisplay = () => {
+            document.querySelectorAll(".delay-options span").forEach(span => {
+                span.classList.toggle("selected", span.textContent === `${delay}s`);
+            });
+        };
+
+        const adjustCanvasSize = () => {
+            if (video.videoWidth && video.videoHeight) {
+                previewCanvas.width = snapshotCanvas.width = video.videoWidth;
+                previewCanvas.height = snapshotCanvas.height = video.videoHeight;
+                draw();
+            }
+        };
+
+        const startStream = (deviceId) => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            navigator.mediaDevices.getUserMedia({ video: { deviceId } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.play();
+                    currentStream = stream;
+                    video.addEventListener("loadedmetadata", adjustCanvasSize);
+                })
+                .catch(error => console.error("Ошибка доступа к камере:", error));
+        };
+
+        const draw = () => {
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            previewCtx.save();
+            previewCtx.scale(-1, 1);
+            previewCtx.drawImage(video, -previewCanvas.width, 0, previewCanvas.width, previewCanvas.height);
+            previewCtx.restore();
+            previewCtx.globalAlpha = 0.5;
+            previewCtx.drawImage(overlayImage, 0, 0, previewCanvas.width, previewCanvas.height);
+            previewCtx.globalAlpha = 1;
+            requestAnimationFrame(draw);
+        };
+
+        const previousCamera = () => {
+            if (cameras.length) {
+                currentCameraIndex = (currentCameraIndex - 1 + cameras.length) % cameras.length;
+                startStream(cameras[currentCameraIndex].deviceId);
+                saveSettings();
+            }
+        };
+
+        const nextCamera = () => {
+            if (cameras.length) {
+                currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+                startStream(cameras[currentCameraIndex].deviceId);
+                saveSettings();
+            }
+        };
+
+        const changeDelay = () => {
+            const delayButton = document.getElementById("changeDelayButton");
+            const delayValues = [0, 3, 10];
+            const newDelay = (delayValues.indexOf(parseInt(delayButton.textContent)) + 1) % delayValues.length;
+            delayButton.textContent = delayValues[newDelay];
+            setDelay(delayValues[newDelay]);
+        };
+
+        const setDelay = (seconds) => {
+            delay = seconds;
+            updateDelayDisplay();
+            saveSettings();
+        };
+
+        const shot = () => {
+            flash.classList.add("active");
+            setTimeout(() => {
+                snapshotCtx.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+                snapshotCanvas.toBlob(blob => {
+                    const link = document.createElement("a");
+                    const date = new Date().toISOString().replace(/T/, "_").replace(/:/g, "-").replace(/\..+/, "");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `SV-${date}.png`;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                }, "image/png");
+                flash.classList.remove("active");
+            }, delay * 1000);
+        };
+
+        if (navigator.mediaDevices?.enumerateDevices) {
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    cameras = devices.filter(device => device.kind === "videoinput");
+                    loadSettings();
+                    if (cameras.length) startStream(cameras[currentCameraIndex].deviceId);
+                    else alert("Нет доступных камер.");
+                })
+                .catch(error => console.error("Ошибка при получении списка устройств:", error));
+        } else {
+            alert("Ваш браузер не поддерживает enumerateDevices.");
+        }
+
+        window.addEventListener("resize", adjustCanvasSize);
+        window.addEventListener("orientationchange", adjustCanvasSize);
+    </script>
+</body>
+</html>
