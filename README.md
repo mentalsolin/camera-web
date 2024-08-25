@@ -20,3 +20,9 @@ openssl req -newkey rsa:2048 -nodes -keyout server.key -x509 -days 365 -out serv
 ```bash
 sudo apt install build-essential pkg-config libssl-dev
 ```
+
+### Android (Termux)
+
+```bash
+pkg install rust openssl-tool
+```
